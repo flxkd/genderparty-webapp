@@ -1,48 +1,86 @@
-import {useState} from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
 import './App.css'
+import { useState, useEffect } from 'react';
+import WebApp from '@twa-dev/sdk';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
-import WebApp from '@twa-dev/sdk'
-
-// import QRCode from 'qrcode.react';
+type TelegramUser = {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+};
 
 function App() {
     const [title, setTitle] = useState('');
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
-    const [date, setDate] = useState<string>('');
     const [showQR, setShowQR] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [timezoneOffset, setTimezoneOffset] = useState<string>('');
+    const [user, setUser] = useState<TelegramUser | null>(null);
+    const [qrUrl, setQrUrl] = useState<string>('');
 
-    // const generateQRData = () => {
-    //     return `https://your-domain.com/webar?title=${encodeURIComponent(title)}&gender=${gender}&date=${date}`;
-    // };
+    useEffect(() => {
+        const offsetInMinutes = new Date().getTimezoneOffset();
+        const hours = Math.floor(Math.abs(offsetInMinutes) / 60)
+            .toString()
+            .padStart(2, '0');
+        const minutes = (Math.abs(offsetInMinutes) % 60).toString().padStart(2, '0');
+        const sign = offsetInMinutes <= 0 ? '+' : '-';
+        setTimezoneOffset(`${sign}${hours}:${minutes}`);
+
+        // Получаем данные пользователя из Telegram WebApp
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.initDataUnsafe?.user) {
+            setUser(tg.initDataUnsafe.user);
+        }
+    }, []);
+
+    const dateTime = selectedDate?.toISOString() ?? '';
 
     const handleGenerate = async () => {
-        if (!title || !gender || !date) {
-            WebApp.showAlert('Пожалуйста, заполните все поля');
+        if (!user) {
+            WebApp.showAlert('Данные пользователя Telegram не загружены.');
+            return;
+        }
+        if (!gender || !selectedDate) {
+            WebApp.showAlert('Пожалуйста, выберите пол и дату.');
             return;
         }
 
-        // Отправляем JSON на бекенд
         try {
-            await fetch('https://your-backend.com/api/save', {
+            const response = await fetch('https://your-backend.com/api/save', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    title,
+                    telegramId: user.id,
+                    username: user.username ?? null,
                     gender,
-                    date,
+                    dateTime,
+                    timezoneOffset,
+                    // Можно также отправить название вечеринки, если нужно:
+                    // title,
                 }),
             });
-        } catch (error) {
-            console.error('Ошибка при отправке данных:', error);
-            WebApp.showAlert('Не удалось отправить данные на сервер');
-            return;
-        }
 
-        setShowQR(true);
+            if (!response.ok) {
+                throw new Error(`Ошибка сервера: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.url) {
+                setQrUrl(data.url);
+                setShowQR(true);
+            } else {
+                WebApp.showAlert('В ответе от сервера нет ссылки на QR код');
+            }
+        } catch (error) {
+            console.error(error);
+            WebApp.showAlert('Не удалось отправить данные на сервер');
+        }
     };
 
     return (
@@ -57,16 +95,52 @@ function App() {
             />
 
             <div className="card">
-                <button onClick={() => setGender('boy')}>👶 Мальчик</button>
-                <button onClick={() => setGender('girl')}>🎀 Девочка</button>
+                <button
+                    onClick={() => setGender('boy')}
+                    disabled={gender !== null}
+                    style={{
+                        backgroundColor: gender !== null ? '#999' : undefined,
+                        color: gender !== null ? '#fff' : undefined,
+                        cursor: gender !== null ? 'default' : 'pointer',
+                        pointerEvents: gender !== null ? 'none' : 'auto',
+                    }}
+                >
+                    👶 Мальчик
+                </button>
+                <button
+                    onClick={() => setGender('girl')}
+                    disabled={gender !== null}
+                    style={{
+                        backgroundColor: gender !== null ? '#999' : undefined,
+                        color: gender !== null ? '#fff' : undefined,
+                        cursor: gender !== null ? 'default' : 'pointer',
+                        pointerEvents: gender !== null ? 'none' : 'auto',
+                    }}
+                >
+                    🎀 Девочка
+                </button>
             </div>
 
-            <h5>reveal date</h5>
-            <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-            />
+            {gender !== null && (
+                <p style={{ marginTop: '8px', fontStyle: 'italic', color: '#555' }}>
+                    Пол выбран
+                </p>
+            )}
+
+            <div className="container">
+                <label>Дата и время события:</label>
+                <DatePicker
+                    selected={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="Pp"
+                    placeholderText="Выберите дату и время"
+                />
+
+                <p>Ваш часовой пояс: GMT{timezoneOffset}</p>
+            </div>
 
             <div className="card">
                 <button onClick={handleGenerate}>
@@ -74,10 +148,10 @@ function App() {
                 </button>
             </div>
 
-            {showQR && (
+            {showQR && qrUrl && (
                 <div className="qr-code">
                     <h5>QR CODE</h5>
-                    {/*<QRCode value={generateQRData()} size={200}/>*/}
+                    <img src={qrUrl} alt="QR Code" width={200} height={200} />
                 </div>
             )}
         </div>
