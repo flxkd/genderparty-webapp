@@ -63,7 +63,7 @@ function App() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    telegramId: user.id,
+                    userId: user.id,
                     username: user.username ?? null,
                     gender,
                     revealDateTime,
