@@ -84,7 +84,7 @@ function App() {
             }
         } catch (error) {
             console.error(error);
-            WebApp.showAlert(error);
+            WebApp.showAlert(error.toString());
         }
     };
 
