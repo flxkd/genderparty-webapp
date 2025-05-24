@@ -37,7 +37,14 @@ function App() {
         }
     }, []);
 
-    const dateTime = selectedDate?.toISOString() ?? '';
+    const getISOWithOffset = (date: Date, offset: string) => {
+        // const tzOffset = offset.replace(':', '');
+        const isoWithoutZ = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+            .toISOString()
+            .slice(0, -1);
+        return `${isoWithoutZ}${offset}`;
+    };
+    const revealDateTime = selectedDate && getISOWithOffset(selectedDate, timezoneOffset);
 
     const handleGenerate = async () => {
         if (!user) {
@@ -50,7 +57,7 @@ function App() {
         }
 
         try {
-            const response = await fetch('https://your-backend.com/api/save', {
+            const response = await fetch('http://localhost:8080/api/v1/event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -59,10 +66,8 @@ function App() {
                     telegramId: user.id,
                     username: user.username ?? null,
                     gender,
-                    dateTime,
-                    timezoneOffset,
-                    // Можно также отправить название вечеринки, если нужно:
-                    // title,
+                    revealDateTime,
+                    title,
                 }),
             });
 
@@ -139,6 +144,7 @@ function App() {
                     placeholderText="Выберите дату и время"
                 />
 
+                <p>Ваша дата: {revealDateTime}</p>
                 <p>Ваш часовой пояс: GMT{timezoneOffset}</p>
             </div>
 
