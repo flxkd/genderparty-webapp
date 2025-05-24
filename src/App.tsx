@@ -57,7 +57,7 @@ function App() {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/api/v1/event', {
+            const response = await fetch('http://genderparty.duckdns.org/api/v1/event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
