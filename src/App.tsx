@@ -77,7 +77,7 @@ function App() {
 
             const data = await response.json();
             if (data.url) {
-                setQrUrl(data.url);
+                setQrUrl("https://genderparty.duckdns.org/api/v1/qr/"+data.url);
                 setShowQR(true);
             } else {
                 WebApp.showAlert('В ответе от сервера нет ссылки на QR код');
