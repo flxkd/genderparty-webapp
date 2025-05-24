@@ -55,7 +55,6 @@ function App() {
             WebApp.showAlert('Пожалуйста, выберите пол и дату.');
             return;
         }
-        WebApp.showAlert("User - "+user.id+" "+user.username);
 
         try {
             const response = await fetch('http://genderparty.duckdns.org/api/v1/event', {
