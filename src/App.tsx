@@ -84,7 +84,7 @@ function App() {
             }
         } catch (error) {
             console.error(error);
-            WebApp.showAlert('Не удалось отправить данные на сервер');
+            WebApp.showAlert(error);
         }
     };
 
