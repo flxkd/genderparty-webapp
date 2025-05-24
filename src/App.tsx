@@ -84,7 +84,7 @@ function App() {
             }
         } catch (error) {
             console.error(error);
-            WebApp.showAlert(error.message);
+            WebApp.showAlert(error instanceof Error ? error.message : 'Неизвестная ошибка');
         }
     };
 
