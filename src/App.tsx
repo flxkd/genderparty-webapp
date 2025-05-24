@@ -55,6 +55,7 @@ function App() {
             WebApp.showAlert('Пожалуйста, выберите пол и дату.');
             return;
         }
+        WebApp.showAlert("User - "+user.id+" "+user.username);
 
         try {
             const response = await fetch('http://genderparty.duckdns.org/api/v1/event', {
@@ -144,6 +145,7 @@ function App() {
                     placeholderText="Выберите дату и время"
                 />
 
+                <p> user.username</p>
                 <p>Ваша дата: {revealDateTime}</p>
                 <p>Ваш часовой пояс: GMT{timezoneOffset}</p>
             </div>
