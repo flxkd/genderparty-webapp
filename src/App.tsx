@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import {QRCodeSVG} from 'qrcode.react';
 
 type TelegramUser = {
     id: number;
@@ -157,7 +158,7 @@ function App() {
             {showQR && qrUrl && (
                 <div className="qr-code">
                     <h5>QR CODE</h5>
-                    <img src={qrUrl} alt="QR Code" width={200} height={200} />
+                    <QRCodeSVG value={qrUrl} size={200} />
                 </div>
             )}
         </div>
