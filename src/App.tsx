@@ -160,7 +160,7 @@ function App() {
             <div className="qr-code">
                 <h5>QR CODE</h5>
                 <QRCodeSVG
-                    value={"https://genderparty.duckdns.org/qr/32542a5d-f596-4fc8-80c5-a17e87dabc99"}
+                    value={"https://genderparty.duckdns.org/qr/1"}
                     size={300}
                     level="H"
                     imageSettings={{
