@@ -78,7 +78,7 @@ function App() {
 
             const data = await response.json();
             if (data.url) {
-                setQrUrl("https://genderparty.duckdns.org/api/v1/qr/"+data.url);
+                setQrUrl("https://genderparty.duckdns.org/qr/1");
                 setShowQR(true);
             } else {
                 WebApp.showAlert('В ответе от сервера нет ссылки на QR код');
@@ -155,9 +155,37 @@ function App() {
                 </button>
             </div>
 
+
+
+            <div className="qr-code">
+                <h5>QR CODE</h5>
+                <QRCodeSVG
+                    value={"https://genderparty.duckdns.org/qr/32542a5d-f596-4fc8-80c5-a17e87dabc99"}
+                    size={300}
+                    level="H"
+                    imageSettings={{
+                        src: '/marker.png',
+                        height: 120,
+                        width: 120,
+                        excavate: true,
+                    }}
+                />
+            </div>
+
             {showQR && qrUrl && (
                 <div className="qr-code">
                     <h5>QR CODE</h5>
+                    <QRCodeSVG
+                        value={qrUrl}
+                        size={300}
+                        level="H"
+                        imageSettings={{
+                            src: '/marker.png',
+                            height: 120,
+                            width: 120,
+                            excavate: true,
+                        }}
+                    />
                     <QRCodeSVG value={qrUrl} size={200} />
                 </div>
             )}
