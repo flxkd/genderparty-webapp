@@ -1,7 +1,6 @@
 import './App.css'
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
-// import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import {QRCodeSVG} from 'qrcode.react';
 
@@ -34,11 +33,11 @@ function App() {
 
     const handleGenerate = async () => {
         if (!user) {
-            WebApp.showAlert('Данные пользователя Telegram не загружены.');
+            WebApp.showAlert('Telegram user data is not loaded.');
             return;
         }
         if (!gender) {
-            WebApp.showAlert('Пожалуйста, выберите пол и дату.');
+            WebApp.showAlert('Choose the baby\'s gender, please');
             return;
         }
 
@@ -52,13 +51,13 @@ function App() {
                     userId: user.id,
                     username: user.username ?? null,
                     gender,
-                    revealDateTime: "2025-01-01T00:00:00+00:00", // заглушка
+                    revealDateTime: "2025-05-24T12:45:36.006+07:00", // заглушка
                     title: "Title"                // заглушка
                 }),
             });
 
             if (!response.ok) {
-                throw new Error(`Ошибка сервера: ${response.statusText}`);
+                throw new Error(`Server error: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -66,11 +65,11 @@ function App() {
                 setQrUrl("https://genderparty.duckdns.org/qr/"+data.id);
                 setShowQR(true);
             } else {
-                WebApp.showAlert('В ответе от сервера нет ссылки на QR код');
+                WebApp.showAlert('There is no url in the server response');
             }
         } catch (error) {
             console.error(error);
-            WebApp.showAlert(error instanceof Error ? error.message : 'Неизвестная ошибка');
+            WebApp.showAlert(error instanceof Error ? error.message : 'Unknown error');
         }
     };
 
