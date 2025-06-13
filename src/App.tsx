@@ -1,7 +1,7 @@
 import './App.css'
 import { useState, useEffect } from 'react';
 import WebApp from '@twa-dev/sdk';
-import DatePicker from 'react-datepicker';
+// import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import {QRCodeSVG} from 'qrcode.react';
 
@@ -14,23 +14,14 @@ type TelegramUser = {
 };
 
 function App() {
-    const [title, setTitle] = useState('');
+
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
     const [showQR, setShowQR] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-    const [timezoneOffset, setTimezoneOffset] = useState<string>('');
+
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
 
     useEffect(() => {
-        const offsetInMinutes = new Date().getTimezoneOffset();
-        const hours = Math.floor(Math.abs(offsetInMinutes) / 60)
-            .toString()
-            .padStart(2, '0');
-        const minutes = (Math.abs(offsetInMinutes) % 60).toString().padStart(2, '0');
-        const sign = offsetInMinutes <= 0 ? '+' : '-';
-        setTimezoneOffset(`${sign}${hours}:${minutes}`);
-
         // Получаем данные пользователя из Telegram WebApp
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.initDataUnsafe?.user) {
@@ -38,21 +29,15 @@ function App() {
         }
     }, []);
 
-    const getISOWithOffset = (date: Date, offset: string) => {
-        // const tzOffset = offset.replace(':', '');
-        const isoWithoutZ = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, -1);
-        return `${isoWithoutZ}${offset}`;
-    };
-    const revealDateTime = selectedDate && getISOWithOffset(selectedDate, timezoneOffset);
+
+
 
     const handleGenerate = async () => {
         if (!user) {
             WebApp.showAlert('Данные пользователя Telegram не загружены.');
             return;
         }
-        if (!gender || !selectedDate) {
+        if (!gender) {
             WebApp.showAlert('Пожалуйста, выберите пол и дату.');
             return;
         }
@@ -67,8 +52,8 @@ function App() {
                     userId: user.id,
                     username: user.username ?? null,
                     gender,
-                    revealDateTime,
-                    title,
+                    revealDateTime: "2025-01-01T00:00:00+00:00", // заглушка
+                    title: "Title"                // заглушка
                 }),
             });
 
@@ -91,14 +76,7 @@ function App() {
 
     return (
         <div className="container">
-            <h1>🎉 Gender Party QR</h1>
-
-            <input
-                type="text"
-                placeholder="Название Gender Party"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-            />
+            <h3>🎉Select the baby's gender</h3>
 
             <div className="card">
                 <button
@@ -111,7 +89,7 @@ function App() {
                         pointerEvents: gender !== null ? 'none' : 'auto',
                     }}
                 >
-                    👶 Мальчик
+                    👶 Boy
                 </button>
                 <button
                     onClick={() => setGender('girl')}
@@ -123,35 +101,35 @@ function App() {
                         pointerEvents: gender !== null ? 'none' : 'auto',
                     }}
                 >
-                    🎀 Девочка
+                    🎀 Girl
                 </button>
             </div>
 
             {gender !== null && (
                 <p style={{ marginTop: '8px', fontStyle: 'italic', color: '#555' }}>
-                    Пол выбран
+                    Gender selected
                 </p>
             )}
 
-            <div className="container">
-                <label>Дата и время события:</label>
-                <DatePicker
-                    selected={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    showTimeSelect
-                    timeFormat="HH:mm"
-                    timeIntervals={15}
-                    dateFormat="Pp"
-                    placeholderText="Выберите дату и время"
-                />
+            {/*<div className="container">*/}
+            {/*    <label>Дата и время события:</label>*/}
+            {/*    <DatePicker*/}
+            {/*        selected={selectedDate}*/}
+            {/*        onChange={(date) => setSelectedDate(date)}*/}
+            {/*        showTimeSelect*/}
+            {/*        timeFormat="HH:mm"*/}
+            {/*        timeIntervals={15}*/}
+            {/*        dateFormat="Pp"*/}
+            {/*        placeholderText="Выберите дату и время"*/}
+            {/*    />*/}
 
-                <p>Ваша дата: {revealDateTime}</p>
-                <p>Ваш часовой пояс: GMT{timezoneOffset}</p>
-            </div>
+            {/*    <p>Ваша дата: {revealDateTime}</p>*/}
+            {/*    <p>Ваш часовой пояс: GMT{timezoneOffset}</p>*/}
+            {/*</div>*/}
 
             <div className="card">
                 <button onClick={handleGenerate}>
-                    📱 Сгенерировать QR для WebAR
+                    📱 Generate QR code
                 </button>
             </div>
 
