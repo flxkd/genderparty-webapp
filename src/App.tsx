@@ -132,7 +132,6 @@ function App() {
                 </button>
             </div>
 
-
             {showQR && qrUrl && (
                 <div className="qr-code">
                     <QRCodeSVG
@@ -140,7 +139,7 @@ function App() {
                         size={300}
                         level="H"
                         imageSettings={{
-                            src: '/marker.png',
+                            src: './marker.png',
                             height: 120,
                             width: 120,
                             excavate: true,
