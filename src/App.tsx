@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
+import { markerBase64 } from './markerBase64';
 
 type TelegramUser = {
     id: number;
@@ -166,7 +167,7 @@ function App() {
                         size={300}
                         level="H"
                         imageSettings={{
-                            src: './marker.png',
+                            src: markerBase64,
                             height: 120,
                             width: 120,
                             excavate: true,
@@ -174,7 +175,7 @@ function App() {
                     />
                     <div style={{ marginTop: 10 }}>
                         <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
-                            📤 Поделиться картинкой
+                            📤 Share
                         </button>
                     </div>
                 </div>
