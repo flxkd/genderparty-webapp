@@ -6,6 +6,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
 import { markerBase64 } from './markerBase64';
 
+// Импортируем dom-to-image-more
+import domtoimage from 'dom-to-image-more';
+
 type TelegramUser = {
     id: number;
     first_name: string;
@@ -19,7 +22,8 @@ function App() {
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const svgRef = useRef<SVGSVGElement>(null);
+    // меняем тип с SVGSVGElement на HTMLDivElement, тк dom-to-image лучше рендерит контейнер
+    const qrWrapperRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -76,67 +80,30 @@ function App() {
     };
 
     const handleShareImage = async () => {
-        const svg = svgRef.current;
-        if (!svg) {
+        const node = qrWrapperRef.current;
+        if (!node) {
             WebApp.showAlert('QR code is not ready yet.');
             return;
         }
 
         try {
-            // Ждём загрузки маркера внутри SVG
-            const imageNode = svg.querySelector('image');
-            if (imageNode) {
-                const href = imageNode.getAttribute('xlink:href') || imageNode.getAttribute('href');
-                if (href) {
-                    await new Promise<void>((resolve, reject) => {
-                        const preload = new Image();
-                        preload.src = href;
-                        preload.onload = () => resolve();
-                        preload.onerror = () => reject(new Error('Marker image failed to load'));
-                    });
-                }
+            // dom-to-image-more преобразует node в blob с корректным рендером всех вложенных изображений
+            const blob = await domtoimage.toBlob(node);
+
+            const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: "Baby's gender QR",
+                });
+            } else {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(file);
+                a.download = 'qrcode.png';
+                a.click();
+                WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
             }
-
-            const svgData = new XMLSerializer().serializeToString(svg);
-            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-
-            const image = new Image();
-            image.src = url;
-
-            await new Promise<void>((resolve, reject) => {
-                image.onload = () => resolve();
-                image.onerror = () => reject(new Error('Failed to load QR image'));
-            });
-
-            const canvas = document.createElement('canvas');
-            canvas.width = svg.clientWidth;
-            canvas.height = svg.clientHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(image, 0, 0);
-
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-
-                const file = new File([blob], 'qrcode.png', { type: 'image/png' });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: "Baby's gender QR",
-                    });
-                } else {
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(file);
-                    a.download = 'qrcode.png';
-                    a.click();
-                    WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
-                }
-            }, 'image/png');
         } catch (error) {
             console.error(error);
             WebApp.showAlert('Failed to generate QR code image.');
@@ -190,18 +157,20 @@ function App() {
 
                 {!isLoading && qrUrl && (
                     <>
-                        <QRCodeSVG
-                            ref={svgRef}
-                            value={qrUrl}
-                            size={300}
-                            level="H"
-                            imageSettings={{
-                                src: markerBase64,
-                                height: 120,
-                                width: 120,
-                                excavate: true,
-                            }}
-                        />
+                        {/* Оборачиваем QR в див для dom-to-image */}
+                        <div ref={qrWrapperRef} style={{ display: 'inline-block', backgroundColor: 'white', padding: 8 }}>
+                            <QRCodeSVG
+                                value={qrUrl}
+                                size={300}
+                                level="H"
+                                imageSettings={{
+                                    src: markerBase64,
+                                    height: 120,
+                                    width: 120,
+                                    excavate: true,
+                                }}
+                            />
+                        </div>
                         <div style={{ marginTop: 10 }}>
                             <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
                                 📤 Share
