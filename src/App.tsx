@@ -46,6 +46,7 @@ function App() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Telegram-ID': String(user.id)
                 },
                 body: JSON.stringify({
                     userId: user.id,
