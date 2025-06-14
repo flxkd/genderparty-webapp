@@ -1,8 +1,8 @@
-import './App.css'
-import { useState, useEffect } from 'react';
+import './App.css';
+import { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
 import 'react-datepicker/dist/react-datepicker.css';
-import {QRCodeSVG} from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 type TelegramUser = {
     id: number;
@@ -16,30 +16,7 @@ function App() {
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
-    const handleShare = async () => {
-        if (!qrUrl) return;
-
-        // Проверяем поддержку Web Share API
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: "Baby's gender QR Code",
-                    url: qrUrl,
-                });
-                console.log("Share successful");
-            } catch (error) {
-                console.error("Share failed:", error);
-            }
-        } else {
-            // Если нет поддержки, копируем ссылку
-            try {
-                await navigator.clipboard.writeText(qrUrl);
-                WebApp.showAlert('Ссылка скопирована в буфер обмена');
-            } catch {
-                WebApp.showAlert('Не удалось скопировать ссылку');
-            }
-        }
-    };
+    const svgRef = useRef<SVGSVGElement>(null);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -49,7 +26,6 @@ function App() {
     }, []);
 
     useEffect(() => {
-        // При выборе пола сразу вызываем генерацию QR, если gender не null
         if (gender !== null) {
             generateQR();
         }
@@ -72,8 +48,8 @@ function App() {
                     userId: user.id,
                     username: user.username ?? null,
                     gender,
-                    revealDateTime: "2025-05-24T12:45:36.006+07:00",
-                    title: "Title"
+                    revealDateTime: '2025-05-24T12:45:36.006+07:00',
+                    title: 'Title',
                 }),
             });
 
@@ -83,13 +59,65 @@ function App() {
 
             const data = await response.json();
             if (data.id) {
-                setQrUrl("https://genderparty.duckdns.org/qr/" + data.id);
+                setQrUrl('https://genderparty.duckdns.org/qr/' + data.id);
             } else {
                 WebApp.showAlert('There is no url in the server response');
             }
         } catch (error) {
             console.error(error);
             WebApp.showAlert(error instanceof Error ? error.message : 'Unknown error');
+        }
+    };
+
+    const handleShareImage = async () => {
+        const svg = svgRef.current;
+        if (!svg) {
+            WebApp.showAlert('QR код ещё не готов');
+            return;
+        }
+
+        try {
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            const image = new Image();
+            image.src = url;
+
+            image.onload = async () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = svg.clientWidth;
+                canvas.height = svg.clientHeight;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(image, 0, 0);
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+
+                    const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Gender Reveal QR',
+                            text: 'Проверь сюрприз 🎉',
+                        });
+                    } else {
+                        // fallback: скачать файл
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(file);
+                        a.download = 'qrcode.png';
+                        a.click();
+                        WebApp.showAlert('Ваш браузер не поддерживает прямой шаринг — файл скачан.');
+                    }
+                }, 'image/png');
+            };
+        } catch (error) {
+            console.error(error);
+            WebApp.showAlert('Не удалось создать изображение QR-кода');
         }
     };
 
@@ -133,6 +161,7 @@ function App() {
             {qrUrl && (
                 <div className="qr-section" style={{ marginTop: 20 }}>
                     <QRCodeSVG
+                        ref={svgRef}
                         value={qrUrl}
                         size={300}
                         level="H"
@@ -144,8 +173,8 @@ function App() {
                         }}
                     />
                     <div style={{ marginTop: 10 }}>
-                        <button onClick={handleShare} style={{ padding: '8px 16px', fontSize: '16px' }}>
-                            📤 Поделиться
+                        <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
+                            📤 Поделиться картинкой
                         </button>
                     </div>
                 </div>
