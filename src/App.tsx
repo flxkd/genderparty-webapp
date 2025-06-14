@@ -85,39 +85,43 @@ function App() {
             const svgData = new XMLSerializer().serializeToString(svg);
             const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(svgBlob);
+
             const image = new Image();
             image.src = url;
 
-            image.onload = async () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = svg.clientWidth;
-                canvas.height = svg.clientHeight;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return;
+            await new Promise<void>((resolve, reject) => {
+                image.onload = () => resolve();
+                image.onerror = () => reject(new Error('Failed to load QR image'));
+            });
 
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(image, 0, 0);
+            const canvas = document.createElement('canvas');
+            canvas.width = svg.clientWidth;
+            canvas.height = svg.clientHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
 
-                canvas.toBlob(async (blob) => {
-                    if (!blob) return;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
 
-                    const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
 
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: "Baby's gender QR",
-                        });
-                    } else {
-                        const a = document.createElement('a');
-                        a.href = URL.createObjectURL(file);
-                        a.download = 'qrcode.png';
-                        a.click();
-                        WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
-                    }
-                }, 'image/png');
-            };
+                const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: "Baby's gender QR",
+                    });
+                } else {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(file);
+                    a.download = 'qrcode.png';
+                    a.click();
+                    WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
+                }
+            }, 'image/png');
         } catch (error) {
             console.error(error);
             WebApp.showAlert('Failed to generate QR code image.');
