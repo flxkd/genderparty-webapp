@@ -253,17 +253,25 @@ function App() {
                                 pointerEvents: 'none',
                             }}
                         />
-                        <div style={{ marginTop: 10 }}>
-                            <button
-                                onClick={handleShareImage}
-                                style={{ padding: '8px 16px', fontSize: '16px' }}
-                            >
-                                📤 Share
-                            </button>
-                        </div>
+                        {/* Переместим кнопку ВНУТРЬ этого контейнера */}
+                        <button
+                            onClick={handleShareImage}
+                            style={{
+                                position: 'absolute',
+                                bottom: 10,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                padding: '8px 16px',
+                                fontSize: '16px',
+                                zIndex: 10,
+                            }}
+                        >
+                            📤 Share
+                        </button>
                     </>
                 )}
             </div>
+
         </div>
     );
 }
