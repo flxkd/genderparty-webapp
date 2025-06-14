@@ -16,6 +16,30 @@ function App() {
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
+    const handleShare = async () => {
+        if (!qrUrl) return;
+
+        // Проверяем поддержку Web Share API
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: "Baby's gender QR Code",
+                    url: qrUrl,
+                });
+                console.log("Share successful");
+            } catch (error) {
+                console.error("Share failed:", error);
+            }
+        } else {
+            // Если нет поддержки, копируем ссылку
+            try {
+                await navigator.clipboard.writeText(qrUrl);
+                WebApp.showAlert('Ссылка скопирована в буфер обмена');
+            } catch {
+                WebApp.showAlert('Не удалось скопировать ссылку');
+            }
+        }
+    };
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -107,7 +131,7 @@ function App() {
             )}
 
             {qrUrl && (
-                <div className="qr-code" style={{ marginTop: '20px' }}>
+                <div className="qr-section" style={{ marginTop: 20 }}>
                     <QRCodeSVG
                         value={qrUrl}
                         size={300}
@@ -119,6 +143,11 @@ function App() {
                             excavate: true,
                         }}
                     />
+                    <div style={{ marginTop: 10 }}>
+                        <button onClick={handleShare} style={{ padding: '8px 16px', fontSize: '16px' }}>
+                            📤 Поделиться
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
