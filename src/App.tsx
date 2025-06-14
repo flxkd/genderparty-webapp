@@ -13,31 +13,27 @@ type TelegramUser = {
 };
 
 function App() {
-
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
-    const [showQR, setShowQR] = useState(false);
-
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
 
     useEffect(() => {
-        // Получаем данные пользователя из Telegram WebApp
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.initDataUnsafe?.user) {
             setUser(tg.initDataUnsafe.user);
         }
     }, []);
 
+    useEffect(() => {
+        // При выборе пола сразу вызываем генерацию QR, если gender не null
+        if (gender !== null) {
+            generateQR();
+        }
+    }, [gender]);
 
-
-
-    const handleGenerate = async () => {
+    const generateQR = async () => {
         if (!user) {
             WebApp.showAlert('Telegram user data is not loaded.');
-            return;
-        }
-        if (!gender) {
-            WebApp.showAlert('Choose the baby\'s gender, please');
             return;
         }
 
@@ -46,14 +42,14 @@ function App() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Telegram-ID': String(user.id)
+                    'X-Telegram-ID': String(user.id),
                 },
                 body: JSON.stringify({
                     userId: user.id,
                     username: user.username ?? null,
                     gender,
-                    revealDateTime: "2025-05-24T12:45:36.006+07:00", // заглушка
-                    title: "Title"                // заглушка
+                    revealDateTime: "2025-05-24T12:45:36.006+07:00",
+                    title: "Title"
                 }),
             });
 
@@ -63,8 +59,7 @@ function App() {
 
             const data = await response.json();
             if (data.id) {
-                setQrUrl("https://genderparty.duckdns.org/qr/"+data.id);
-                setShowQR(true);
+                setQrUrl("https://genderparty.duckdns.org/qr/" + data.id);
             } else {
                 WebApp.showAlert('There is no url in the server response');
             }
@@ -111,30 +106,8 @@ function App() {
                 </p>
             )}
 
-            {/*<div className="container">*/}
-            {/*    <label>Дата и время события:</label>*/}
-            {/*    <DatePicker*/}
-            {/*        selected={selectedDate}*/}
-            {/*        onChange={(date) => setSelectedDate(date)}*/}
-            {/*        showTimeSelect*/}
-            {/*        timeFormat="HH:mm"*/}
-            {/*        timeIntervals={15}*/}
-            {/*        dateFormat="Pp"*/}
-            {/*        placeholderText="Выберите дату и время"*/}
-            {/*    />*/}
-
-            {/*    <p>Ваша дата: {revealDateTime}</p>*/}
-            {/*    <p>Ваш часовой пояс: GMT{timezoneOffset}</p>*/}
-            {/*</div>*/}
-
-            <div className="card">
-                <button onClick={handleGenerate}>
-                    📱 Generate QR code
-                </button>
-            </div>
-
-            {showQR && qrUrl && (
-                <div className="qr-code">
+            {qrUrl && (
+                <div className="qr-code" style={{ marginTop: '20px' }}>
                     <QRCodeSVG
                         value={qrUrl}
                         size={300}
