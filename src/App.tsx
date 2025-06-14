@@ -5,6 +5,7 @@ import WebApp from '@twa-dev/sdk';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
 import { markerBase64 } from './markerBase64';
+import { createRoot } from 'react-dom/client';
 
 type TelegramUser = {
     id: number;
@@ -19,7 +20,7 @@ function App() {
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const svgRef = useRef<SVGSVGElement>(null);
+    const qrRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const tg = (window as any).Telegram?.WebApp;
@@ -76,89 +77,112 @@ function App() {
     };
 
     const handleShareImage = async () => {
-        const svg = svgRef.current;
-        if (!svg) {
-            WebApp.showAlert('QR code is not ready yet.');
-            return;
-        }
+        const size = 300;
+        const markerSize = 120;
 
         try {
-            // Убедимся, что маркер внутри SVG загружен
-            const imageNode = svg.querySelector('image');
-            if (imageNode) {
-                const href = imageNode.getAttribute('xlink:href') || imageNode.getAttribute('href');
-                if (href) {
-                    await new Promise<void>((resolve, reject) => {
-                        const preload = new Image();
-                        preload.crossOrigin = 'anonymous'; // если нужно загрузить с другого домена
-                        preload.src = href;
-                        preload.onload = () => resolve();
-                        preload.onerror = () => reject(new Error('Marker image failed to load'));
-                    });
-                }
-            }
-
-            // Добавим xmlns, чтобы не было проблем с рендерингом SVG
-            let svgData = new XMLSerializer().serializeToString(svg);
-            if (!svgData.includes('xmlns="http://www.w3.org/2000/svg"')) {
-                svgData = svgData.replace(
-                    '<svg',
-                    '<svg xmlns="http://www.w3.org/2000/svg"'
-                );
-            }
-
-            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-
-            const image = new Image();
-            image.crossOrigin = 'anonymous'; // на всякий случай
-            image.src = url;
-
-            await new Promise<void>((resolve, reject) => {
-                image.onload = () => resolve();
-                image.onerror = () => reject(new Error('Failed to load QR image'));
-            });
-
-            // Задаём canvas размер, совпадающий с size QRCodeSVG
-            const canvas = document.createElement('canvas');
-            const size = 300; // тот же, что и в QRCodeSVG props
-            canvas.width = size;
-            canvas.height = size;
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                WebApp.showAlert('Failed to get canvas context.');
+            if (!qrUrl) {
+                WebApp.showAlert('QR code URL is not ready.');
                 return;
             }
 
-            ctx.fillStyle = 'white'; // белый фон, чтобы не было прозрачности
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const tempContainer = document.createElement('div');
+            tempContainer.style.position = 'fixed';
+            tempContainer.style.left = '-9999px';
+            document.body.appendChild(tempContainer);
 
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
+            const root = createRoot(tempContainer);
+            root.render(<QRCodeSVG value={qrUrl} size={size} level="H" />);
 
-                const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+            // Ждём, чтобы React отрендерил SVG
+            await new Promise((resolve) => setTimeout(resolve, 50));
 
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: "Baby's gender QR",
-                    });
-                } else {
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(file);
-                    a.download = 'qrcode.png';
-                    a.click();
-                    WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
-                }
-            }, 'image/png');
+            const svgElement = tempContainer.querySelector('svg');
+            if (!svgElement) {
+                WebApp.showAlert('Failed to get QR SVG element.');
+                root.unmount();
+                document.body.removeChild(tempContainer);
+                return;
+            }
+
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+                WebApp.showAlert('Failed to get canvas context.');
+                root.unmount();
+                document.body.removeChild(tempContainer);
+                URL.revokeObjectURL(svgUrl);
+                return;
+            }
+
+            // Белый фон
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, size, size);
+
+            const qrImage = new Image();
+            qrImage.crossOrigin = 'anonymous';
+            qrImage.src = svgUrl;
+
+            qrImage.onload = () => {
+                ctx.drawImage(qrImage, 0, 0, size, size);
+
+                const markerImg = new Image();
+                markerImg.crossOrigin = 'anonymous';
+                markerImg.src = markerBase64;
+
+                markerImg.onload = () => {
+                    ctx.drawImage(markerImg, (size - markerSize) / 2, (size - markerSize) / 2, markerSize, markerSize);
+
+                    canvas.toBlob(async (blob) => {
+                        if (!blob) return;
+
+                        const file = new File([blob], 'qrcode.png', { type: 'image/png' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: "Baby's gender QR",
+                            });
+                        } else {
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(file);
+                            a.download = 'qrcode.png';
+                            a.click();
+                            WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
+                        }
+                    }, 'image/png');
+
+                    root.unmount();
+                    document.body.removeChild(tempContainer);
+                    URL.revokeObjectURL(svgUrl);
+                };
+
+                markerImg.onerror = () => {
+                    WebApp.showAlert('Failed to load marker image.');
+                    root.unmount();
+                    document.body.removeChild(tempContainer);
+                    URL.revokeObjectURL(svgUrl);
+                };
+            };
+
+            qrImage.onerror = () => {
+                WebApp.showAlert('Failed to load QR image.');
+                root.unmount();
+                document.body.removeChild(tempContainer);
+                URL.revokeObjectURL(svgUrl);
+            };
         } catch (error) {
             console.error(error);
             WebApp.showAlert('Failed to generate QR code image.');
         }
     };
-
 
     return (
         <div className="container">
@@ -197,7 +221,11 @@ function App() {
                 </p>
             )}
 
-            <div className="qr-section" style={{ marginTop: 20 }}>
+            <div
+                className="qr-section"
+                style={{ marginTop: 20, position: 'relative', width: 300, height: 300 }}
+                ref={qrRef}
+            >
                 {isLoading && (
                     <div className="loader" style={{ margin: '40px auto' }}>
                         <div className="spinner"></div>
@@ -208,19 +236,28 @@ function App() {
                 {!isLoading && qrUrl && (
                     <>
                         <QRCodeSVG
-                            ref={svgRef}
                             value={qrUrl}
                             size={300}
                             level="H"
-                            imageSettings={{
-                                src: markerBase64,
-                                height: 120,
+                        />
+                        <img
+                            src={markerBase64}
+                            alt="marker"
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
                                 width: 120,
-                                excavate: false,
+                                height: 120,
+                                transform: 'translate(-50%, -50%)',
+                                pointerEvents: 'none',
                             }}
                         />
                         <div style={{ marginTop: 10 }}>
-                            <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
+                            <button
+                                onClick={handleShareImage}
+                                style={{ padding: '8px 16px', fontSize: '16px' }}
+                            >
                                 📤 Share
                             </button>
                         </div>
