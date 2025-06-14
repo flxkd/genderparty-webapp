@@ -45,8 +45,7 @@ function App() {
             const response = await fetch('https://genderparty.duckdns.org/api/v1/event', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-ID': String(user.id)
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     userId: user.id,
