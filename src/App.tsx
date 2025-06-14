@@ -88,7 +88,14 @@ function App() {
 
         try {
             // dom-to-image-more преобразует node в blob с корректным рендером всех вложенных изображений
-            const blob = await domtoimage.toBlob(node);
+            const blob = await domtoimage.toBlob(node, {
+                style: {
+                    backgroundColor: 'white',
+                    padding: '8px',
+                },
+                // можно указать filter, если нужно исключить какие-то элементы
+                // filter: (node) => true,
+            });
 
             const file = new File([blob], 'qrcode.png', { type: 'image/png' });
 
