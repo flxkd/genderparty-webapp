@@ -17,6 +17,7 @@ function App() {
     const [gender, setGender] = useState<'boy' | 'girl' | null>(null);
     const [user, setUser] = useState<TelegramUser | null>(null);
     const [qrUrl, setQrUrl] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const svgRef = useRef<SVGSVGElement>(null);
 
     useEffect(() => {
@@ -38,6 +39,7 @@ function App() {
             return;
         }
 
+        setIsLoading(true);
         try {
             const response = await fetch('https://genderparty.duckdns.org/api/v1/event', {
                 method: 'POST',
@@ -62,18 +64,20 @@ function App() {
             if (data.id) {
                 setQrUrl('https://genderparty.duckdns.org/qr/' + data.id);
             } else {
-                WebApp.showAlert('There is no url in the server response');
+                WebApp.showAlert('No URL in the server response.');
             }
         } catch (error) {
             console.error(error);
-            WebApp.showAlert(error instanceof Error ? error.message : 'Unknown error');
+            WebApp.showAlert(error instanceof Error ? error.message : 'Unknown error occurred.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleShareImage = async () => {
         const svg = svgRef.current;
         if (!svg) {
-            WebApp.showAlert('QR код ещё не готов');
+            WebApp.showAlert('QR code is not ready yet.');
             return;
         }
 
@@ -103,28 +107,26 @@ function App() {
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             files: [file],
-                            title: 'Gender Reveal QR',
-                            text: 'Проверь сюрприз 🎉',
+                            title: "Baby's gender QR",
                         });
                     } else {
-                        // fallback: скачать файл
                         const a = document.createElement('a');
                         a.href = URL.createObjectURL(file);
                         a.download = 'qrcode.png';
                         a.click();
-                        WebApp.showAlert('Ваш браузер не поддерживает прямой шаринг — файл скачан.');
+                        WebApp.showAlert('Your browser does not support direct sharing — the file has been downloaded.');
                     }
                 }, 'image/png');
             };
         } catch (error) {
             console.error(error);
-            WebApp.showAlert('Не удалось создать изображение QR-кода');
+            WebApp.showAlert('Failed to generate QR code image.');
         }
     };
 
     return (
         <div className="container">
-            <h3>🎉Select the baby's gender</h3>
+            <h3>🎉 Select the baby's gender</h3>
 
             <div className="card">
                 <button
@@ -159,27 +161,36 @@ function App() {
                 </p>
             )}
 
-            {qrUrl && (
-                <div className="qr-section" style={{ marginTop: 20 }}>
-                    <QRCodeSVG
-                        ref={svgRef}
-                        value={qrUrl}
-                        size={300}
-                        level="H"
-                        imageSettings={{
-                            src: markerBase64,
-                            height: 120,
-                            width: 120,
-                            excavate: true,
-                        }}
-                    />
-                    <div style={{ marginTop: 10 }}>
-                        <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
-                            📤 Share
-                        </button>
+            <div className="qr-section" style={{ marginTop: 20 }}>
+                {isLoading && (
+                    <div className="loader" style={{ margin: '40px auto' }}>
+                        <div className="spinner"></div>
+                        <p>Generating QR code...</p>
                     </div>
-                </div>
-            )}
+                )}
+
+                {!isLoading && qrUrl && (
+                    <>
+                        <QRCodeSVG
+                            ref={svgRef}
+                            value={qrUrl}
+                            size={300}
+                            level="H"
+                            imageSettings={{
+                                src: markerBase64,
+                                height: 120,
+                                width: 120,
+                                excavate: true,
+                            }}
+                        />
+                        <div style={{ marginTop: 10 }}>
+                            <button onClick={handleShareImage} style={{ padding: '8px 16px', fontSize: '16px' }}>
+                                📤 Share
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
