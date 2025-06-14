@@ -1,3 +1,4 @@
+// App.tsx
 import './App.css';
 import { useState, useEffect, useRef } from 'react';
 import WebApp from '@twa-dev/sdk';
@@ -82,6 +83,20 @@ function App() {
         }
 
         try {
+            // Ждём загрузки маркера внутри SVG
+            const imageNode = svg.querySelector('image');
+            if (imageNode) {
+                const href = imageNode.getAttribute('xlink:href') || imageNode.getAttribute('href');
+                if (href) {
+                    await new Promise<void>((resolve, reject) => {
+                        const preload = new Image();
+                        preload.src = href;
+                        preload.onload = () => resolve();
+                        preload.onerror = () => reject(new Error('Marker image failed to load'));
+                    });
+                }
+            }
+
             const svgData = new XMLSerializer().serializeToString(svg);
             const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(svgBlob);
