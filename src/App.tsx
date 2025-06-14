@@ -216,7 +216,7 @@ function App() {
                                 src: markerBase64,
                                 height: 120,
                                 width: 120,
-                                excavate: true,
+                                excavate: false,
                             }}
                         />
                         <div style={{ marginTop: 10 }}>
